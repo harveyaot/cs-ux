@@ -35,7 +35,7 @@
 
   --section-gap: 160px;
 }
-
+/* remove the dark theme for temporary
 @media (prefers-color-scheme: dark) {
   :root {
     --color-background: var(--vt-c-black);
@@ -49,7 +49,7 @@
     --color-text: var(--vt-c-text-dark-2);
   }
 }
-
+*/
 *,
 *::before,
 *::after {
