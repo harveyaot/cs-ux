@@ -6,11 +6,14 @@ import { onMounted, ref, watch} from 'vue'
 const posts = ref([])
 const error = ref(null)
 const PageLimit = 20;
+const publishers = ref(['all', 'newsweek', 'bloomberg', 'scmp', 'foreignpolicy'])
+const selectedPublisher = ref('all')
+const CMSBaseUrl = 'https://cms-strapi-longriver.azurewebsites.net/api/opinoin-news-many'
 // add pagination infomation
 const pagination = ref({
   page: 1,
   pageSize: 10,
-  pageCount: 0,
+  pageCount: 0,                       
   total: 0,
 })
 
@@ -31,7 +34,7 @@ const date = (dateString) => {
 onMounted(async () => {
   try {
     // calling strapi api sort by updateDate in descending order with page parameter
-    const response = await axios.get('https://cms-strapi-longriver.azurewebsites.net/api/opinoin-news-many?sort[0]=updateDate:desc&pagination[pageSize]=' + pagination.value.pageSize)
+    const response = await axios.get(CMSBaseUrl + '?sort[0]=updateDate:desc&pagination[pageSize]=' + pagination.value.pageSize)
     posts.value = response.data.data
     // load pagination information from response.data.meta
     pagination.value = response.data.meta.pagination
@@ -44,8 +47,31 @@ onMounted(async () => {
 // add watch function on pagenation.page to call axios get method when page change
 watch(() => pagination.value.page, async () => {
   try {
+    var url = CMSBaseUrl + '?sort[0]=updateDate:desc&pagination[page]=' + pagination.value.page + '&pagination[pageSize]=' + pagination.value.pageSize
+    if (selectedPublisher.value != 'all'){
+      url += `&filters[source][$eq]=${selectedPublisher.value}`
+    }
     // calling strapi api sort by updateDate in descending order with page parameter
-    const response = await axios.get('https://cms-strapi-longriver.azurewebsites.net/api/opinoin-news-many?sort[0]=updateDate:desc&pagination[page]=' + pagination.value.page + '&pagination[pageSize]=' + pagination.value.pageSize)
+    const response = await axios.get(url)
+    //const response = await axios.get('https://cms-strapi-longriver.azurewebsites.net/api/opinoin-news-many?sort[-1]=updateDate:desc')
+    posts.value = response.data.data
+    // load pagination information from response.data.meta
+    pagination.value = response.data.meta.pagination
+
+  } catch (error) {
+    error = error;
+  }
+})
+
+watch(selectedPublisher, async (newPublisher) => {
+  try {
+    pagination.value.page = 1
+    var url = CMSBaseUrl + '?sort[0]=updateDate:desc&pagination[page]=' + pagination.value.page + '&pagination[pageSize]=' + pagination.value.pageSize
+    if (newPublisher != 'all'){
+      url += `&filters[source][$eq]=${newPublisher}`
+    }
+    // calling strapi api sort by updateDate in descending order with page parameter
+    const response = await axios.get(url)
     //const response = await axios.get('https://cms-strapi-longriver.azurewebsites.net/api/opinoin-news-many?sort[-1]=updateDate:desc')
     posts.value = response.data.data
     // load pagination information from response.data.meta
@@ -58,9 +84,18 @@ watch(() => pagination.value.page, async () => {
 </script>
 
 <template>
-  <div id="app">
-    <h1> Opinions Collection </h1>
+  <div v-if="posts && posts.length > 0" id="app">
+    <h1 posts> Opinions Collection </h1>
     <hr>
+    <br>
+    <div>
+      <b>Filter Publisher: </b>
+      <select v-model="selectedPublisher">
+        <option v-for="(choice, index) in publishers" :key="index" :value="choice">
+          {{ choice }}
+        </option>
+      </select>
+    </div>
     <br>
     <div v-if="error">
       {{ error }}
